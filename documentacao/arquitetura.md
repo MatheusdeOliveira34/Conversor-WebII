@@ -93,8 +93,12 @@ frontend/
 │   ├── components/      FileDropzone.vue, FormatSelector.vue, ResultPanel.vue
 │   ├── services/        conversionApi.js
 │   └── utils/           download.js, fileFormat.js
-├── tests/unit/          FileDropzone.spec.js, FormatSelector.spec.js
-└── .env.development     VUE_APP_API_URL=http://localhost:8080
+├── tests/unit/          App.spec.js, conversionApi.spec.js, FileDropzone.spec.js, FormatSelector.spec.js
+├── .env.development     VUE_APP_API_URL=http://localhost:8080
+├── package.json         dependências e scripts (serve, build, test:unit)
+├── vue.config.js        servidor de desenvolvimento na porta 8081
+├── jest.config.js       preset do Vue CLI; Axios resolvido para o build CommonJS
+└── babel.config.js
 ```
 
 | Arquivo | Responsabilidade |
@@ -106,6 +110,8 @@ frontend/
 | `src/services/conversionApi.js` | Axios com `baseURL` de `VUE_APP_API_URL`; `getFormats()` e `convert(file, target)` |
 | `src/utils/download.js` | Converte base64 em `Blob` e dispara o download via `URL.createObjectURL` |
 | `src/utils/fileFormat.js` | Mapa extensão → formato e limite de 10 MB, espelhando o back-end |
+| `src/assets/styles/variables.css` | Design tokens (cores, tipografia, espaçamento) de [`interface.md`](interface.md) |
+| `src/assets/styles/base.css` | Reset leve, fonte Inter, cor de fundo e foco visível global |
 
 ## 4. Comunicação entre front-end e back-end
 

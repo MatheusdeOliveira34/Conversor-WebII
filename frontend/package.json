@@ -1,0 +1,36 @@
+{
+  "name": "fileconverter-frontend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Front-end do FileConverter: tela única para converter PDF, DOCX e XLSX",
+  "scripts": {
+    "serve": "vue-cli-service serve",
+    "build": "vue-cli-service build",
+    "test:unit": "vue-cli-service test:unit"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "axios": "^1.21.1",
+    "core-js": "^3.51.0",
+    "vue": "~2.7.16"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.26.0",
+    "@vue/cli-plugin-babel": "~5.0.9",
+    "@vue/cli-plugin-unit-jest": "~5.0.9",
+    "@vue/cli-service": "~5.0.9",
+    "@vue/test-utils": "^1.3.6",
+    "@vue/vue2-jest": "^27.0.0",
+    "babel-jest": "^27.5.1",
+    "jest": "^27.5.1",
+    "vue-template-compiler": "~2.7.16"
+  },
+  "browserslist": [
+    "> 1%",
+    "last 2 versions",
+    "not dead"
+  ],
+  "overrides": {
+    "webpack": "5.109.2"
+  }
+}
