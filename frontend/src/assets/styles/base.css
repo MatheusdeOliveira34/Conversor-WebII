@@ -44,8 +44,73 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Texto só para leitores de tela */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
 /* Foco visível: contorno azul de 2 px em tudo que recebe teclado */
 :focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
+}
+
+/*
+ * Botões compartilhados (interface.md, seção 4): uma ação principal azul preenchida
+ * por estado; ações secundárias contornadas.
+ */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  min-height: 40px;
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius);
+  font-size: var(--font-size-body);
+  font-weight: 500;
+  line-height: 1.2;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+}
+
+.btn--primary {
+  width: 100%;
+  border-color: var(--color-primary);
+  background-color: var(--color-primary);
+  color: #ffffff;
+}
+
+.btn--primary:hover:not(:disabled),
+.btn--primary:active:not(:disabled) {
+  background-color: var(--color-primary-hover);
+}
+
+.btn--outline {
+  background-color: var(--color-surface);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.btn--outline:hover:not(:disabled) {
+  background-color: #eff6ff;
+}
+
+/* Abaixo de 600 px as ações secundárias ocupam a largura toda */
+@media (max-width: 599px) {
+  .btn--outline {
+    width: 100%;
+  }
 }
