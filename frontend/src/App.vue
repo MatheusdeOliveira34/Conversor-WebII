@@ -7,17 +7,32 @@
       </header>
 
       <section class="app-content" aria-label="Conversão de arquivo">
-        <p class="app-hint">
-          Envie um arquivo PDF, DOCX ou XLSX de até 10 MB e escolha o formato de destino.
-        </p>
+        <file-dropzone
+          v-if="!file"
+          @file-selected="onFileSelected"
+          @error="onFileError"
+        />
+
+        <div v-else class="file-card">
+          <span class="format-tag" :class="`format-tag--${sourceFormat.toLowerCase()}`">
+            {{ sourceFormat }}
+          </span>
+          <span class="file-card__name" :title="file.name">{{ file.name }}</span>
+          <span class="file-card__size">{{ fileSize }}</span>
+        </div>
       </section>
     </main>
   </div>
 </template>
 
 <script>
+import FileDropzone from '@/components/FileDropzone.vue'
+import { formatFileSize, formatFromFileName } from '@/utils/fileFormat'
+
 export default {
   name: 'App',
+
+  components: { FileDropzone },
 
   data () {
     return {
@@ -27,6 +42,31 @@ export default {
       loading: false,
       result: null,
       error: null
+    }
+  },
+
+  computed: {
+    sourceFormat () {
+      return this.file ? formatFromFileName(this.file.name) : null
+    },
+    fileSize () {
+      return this.file ? formatFileSize(this.file.size) : ''
+    }
+  },
+
+  methods: {
+    onFileSelected (file) {
+      // UC01 A3: trocar o arquivo limpa o destino e o resultado anteriores
+      this.file = file
+      this.targetFormat = null
+      this.result = null
+      this.error = null
+    },
+
+    onFileError () {
+      // UC01 A1/A2: arquivo rejeitado não fica selecionado
+      this.file = null
+      this.targetFormat = null
     }
   }
 }
@@ -68,8 +108,57 @@ export default {
   color: var(--color-text-muted);
 }
 
-.app-hint {
+.app-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+/* Cartão do arquivo selecionado (RF07): formato, nome e tamanho */
+.file-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.file-card__name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+
+.file-card__size {
   font-size: var(--font-size-help);
   color: var(--color-text-muted);
+  white-space: nowrap;
+}
+
+/* Etiqueta de formato: cor + texto, nunca só a cor */
+.format-tag {
+  display: inline-block;
+  padding: 2px var(--space-1);
+  border-radius: 4px;
+  font-size: var(--font-size-help);
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.format-tag--pdf {
+  background-color: var(--color-pdf);
+}
+
+.format-tag--docx {
+  background-color: var(--color-docx);
+}
+
+.format-tag--xlsx {
+  background-color: var(--color-xlsx);
 }
 </style>

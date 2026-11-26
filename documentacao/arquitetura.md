@@ -93,7 +93,8 @@ frontend/
 │   ├── components/      FileDropzone.vue, FormatSelector.vue, ResultPanel.vue
 │   ├── services/        conversionApi.js
 │   └── utils/           download.js, fileFormat.js
-├── tests/unit/          App.spec.js, conversionApi.spec.js, FileDropzone.spec.js, FormatSelector.spec.js
+├── tests/unit/          App.spec.js, conversionApi.spec.js, fileFormat.spec.js,
+│                        FileDropzone.spec.js, FormatSelector.spec.js
 ├── .env.development     VUE_APP_API_URL=http://localhost:8080
 ├── package.json         dependências e scripts (serve, build, test:unit)
 ├── vue.config.js        servidor de desenvolvimento na porta 8081
@@ -104,12 +105,12 @@ frontend/
 | Arquivo | Responsabilidade |
 | --- | --- |
 | `src/App.vue` | Estado da tela (`file`, `targetFormat`, `conversions`, `loading`, `result`, `error`) e orquestração |
-| `src/components/FileDropzone.vue` | Clique/arrastar, valida extensão e tamanho, emite `file-selected` |
+| `src/components/FileDropzone.vue` | Clique/arrastar (`<label>` ligado ao `<input type="file">`), valida extensão, tamanho e arquivo vazio; emite `file-selected` (arquivo, formato) ou `error` (mensagem) |
 | `src/components/FormatSelector.vue` | Recebe `options` via prop, emite `input` (funciona com `v-model`) |
 | `src/components/ResultPanel.vue` | Mostra sucesso ou erro, emite `download` e `reset` |
 | `src/services/conversionApi.js` | Axios com `baseURL` de `VUE_APP_API_URL`; `getFormats()` e `convert(file, target)` |
 | `src/utils/download.js` | Converte base64 em `Blob` e dispara o download via `URL.createObjectURL` |
-| `src/utils/fileFormat.js` | Mapa extensão → formato e limite de 10 MB, espelhando o back-end |
+| `src/utils/fileFormat.js` | Mapa extensão → formato, limite de 10 MB (espelhando o back-end), `validateFile` e `formatFileSize` |
 | `src/assets/styles/variables.css` | Design tokens (cores, tipografia, espaçamento) de [`interface.md`](interface.md) |
 | `src/assets/styles/base.css` | Reset leve, fonte Inter, cor de fundo e foco visível global |
 
