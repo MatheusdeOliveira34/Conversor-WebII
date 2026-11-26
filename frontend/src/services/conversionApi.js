@@ -32,4 +32,34 @@ export function convert (file, targetFormat) {
   return http.post(BASE_PATH, formData).then(response => response.data)
 }
 
-export default { getFormats, convert }
+/** Mensagem quando não há resposta do servidor (UC01 E5). */
+export const SERVER_UNAVAILABLE = 'Servidor indisponível. Tente novamente.'
+
+/** Mensagem para qualquer erro sem `message` no corpo (UC01 E4). */
+export const GENERIC_ERROR = 'Erro inesperado, tente novamente.'
+
+/** Usadas só se o corpo não for um ErrorResponse (ex.: limite do servidor antes do handler). */
+const MESSAGES_BY_STATUS = {
+  413: 'Arquivo maior que 10 MB.',
+  415: 'Formato não suportado. Use PDF, DOCX ou XLSX.'
+}
+
+/**
+ * Traduz um erro do Axios na mensagem mostrada ao usuário (RF09):
+ * usa o `message` do ErrorResponse quando existe; senão, uma mensagem pelo status.
+ * @param {Error} error
+ * @returns {string}
+ */
+export function errorMessage (error) {
+  const response = error && error.response
+  if (!response) {
+    return SERVER_UNAVAILABLE
+  }
+  const data = response.data
+  if (data && typeof data.message === 'string' && data.message.trim()) {
+    return data.message
+  }
+  return MESSAGES_BY_STATUS[response.status] || GENERIC_ERROR
+}
+
+export default { getFormats, convert, errorMessage }

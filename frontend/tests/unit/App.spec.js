@@ -1,11 +1,28 @@
 import { shallowMount } from '@vue/test-utils'
 import App, { FORMATS_ERROR } from '@/App.vue'
-import { getFormats } from '@/services/conversionApi'
+import { convert, getFormats } from '@/services/conversionApi'
+import { createDownloadUrl, triggerDownload } from '@/utils/download'
 
 jest.mock('@/services/conversionApi', () => ({
+  ...jest.requireActual('@/services/conversionApi'),
   getFormats: jest.fn(),
   convert: jest.fn()
 }))
+
+jest.mock('@/utils/download', () => ({
+  createDownloadUrl: jest.fn(() => 'blob:http://localhost/1'),
+  triggerDownload: jest.fn()
+}))
+
+const RESPONSE = {
+  fileName: 'relatorio.pdf',
+  contentType: 'application/pdf',
+  sourceFormat: 'DOCX',
+  targetFormat: 'PDF',
+  sizeBytes: 8,
+  durationMs: 312,
+  contentBase64: 'JVBERi0xLjc='
+}
 
 const CONVERSIONS = [
   { sourceFormat: 'PDF', targetFormats: ['DOCX', 'XLSX'] },
@@ -30,7 +47,7 @@ async function selectFile (wrapper, name = 'relatorio.docx', format = 'DOCX') {
 
 describe('App.vue', () => {
   beforeEach(() => {
-    getFormats.mockReset()
+    jest.clearAllMocks()
     getFormats.mockResolvedValue(CONVERSIONS)
   })
 
@@ -52,7 +69,8 @@ describe('App.vue', () => {
       formatsError: null,
       loading: false,
       result: null,
-      error: null
+      error: null,
+      downloadUrl: null
     })
     expect(wrapper.findComponent({ name: 'FileDropzone' }).props('loading')).toBe(true)
   })
@@ -105,6 +123,92 @@ describe('App.vue', () => {
       wrapper.findComponent({ name: 'FormatSelector' }).vm.$emit('input', 'PDF')
 
       expect(wrapper.vm.targetFormat).toBe('PDF')
+    })
+  })
+
+  describe('UC01 — converter e baixar', () => {
+    async function readyToConvert () {
+      const wrapper = await mountLoaded()
+      await selectFile(wrapper)
+      wrapper.findComponent({ name: 'FormatSelector' }).vm.$emit('input', 'PDF')
+      await wrapper.vm.$nextTick()
+      return wrapper
+    }
+
+    it('botão Converter fica desabilitado até escolher o destino', async () => {
+      const wrapper = await mountLoaded()
+      await selectFile(wrapper)
+
+      expect(wrapper.find('.btn--primary').attributes('disabled')).toBeDefined()
+
+      wrapper.findComponent({ name: 'FormatSelector' }).vm.$emit('input', 'PDF')
+      await wrapper.vm.$nextTick()
+      expect(wrapper.find('.btn--primary').attributes('disabled')).toBeUndefined()
+    })
+
+    it('mostra o spinner e "Convertendo…" enquanto envia (RF08)', async () => {
+      convert.mockReturnValue(new Promise(() => {}))
+      const wrapper = await readyToConvert()
+
+      await wrapper.find('.btn--primary').trigger('click')
+
+      const button = wrapper.find('.btn--primary')
+      expect(button.text()).toBe('Convertendo…')
+      expect(button.find('.spinner').exists()).toBe(true)
+      expect(button.attributes('disabled')).toBeDefined()
+      expect(wrapper.findComponent({ name: 'FormatSelector' }).props('disabled')).toBe(true)
+    })
+
+    it('envia arquivo e destino, baixa automaticamente e mostra o resultado', async () => {
+      convert.mockResolvedValue(RESPONSE)
+      const wrapper = await readyToConvert()
+      const file = wrapper.vm.file
+
+      await wrapper.find('.btn--primary').trigger('click')
+      await flushPromises()
+
+      expect(convert).toHaveBeenCalledWith(file, 'PDF')
+      expect(createDownloadUrl).toHaveBeenCalledWith('JVBERi0xLjc=', 'application/pdf')
+      expect(triggerDownload).toHaveBeenCalledWith('blob:http://localhost/1', 'relatorio.pdf')
+
+      const panel = wrapper.findComponent({ name: 'ResultPanel' })
+      expect(panel.props('result')).toEqual({ ...RESPONSE, contentBase64: undefined })
+      expect(panel.props('result')).not.toHaveProperty('contentBase64')
+      expect(wrapper.find('.btn--primary').exists()).toBe(false)
+    })
+
+    it('"Baixar novamente" reutiliza a mesma URL', async () => {
+      convert.mockResolvedValue(RESPONSE)
+      const wrapper = await readyToConvert()
+      await wrapper.find('.btn--primary').trigger('click')
+      await flushPromises()
+
+      wrapper.findComponent({ name: 'ResultPanel' }).vm.$emit('download')
+
+      expect(triggerDownload).toHaveBeenCalledTimes(2)
+      expect(createDownloadUrl).toHaveBeenCalledTimes(1)
+    })
+
+    it('mostra o message do ErrorResponse e permite tentar novamente', async () => {
+      convert.mockRejectedValueOnce({
+        response: { status: 422, data: { code: 'CORRUPTED_FILE', message: 'Arquivo corrompido.' } }
+      })
+      const wrapper = await readyToConvert()
+
+      await wrapper.find('.btn--primary').trigger('click')
+      await flushPromises()
+
+      const panel = wrapper.findComponent({ name: 'ResultPanel' })
+      expect(panel.props('error')).toBe('Arquivo corrompido.')
+      expect(triggerDownload).not.toHaveBeenCalled()
+
+      convert.mockResolvedValue(RESPONSE)
+      panel.vm.$emit('retry')
+      await flushPromises()
+
+      expect(convert).toHaveBeenCalledTimes(2)
+      expect(wrapper.vm.error).toBeNull()
+      expect(wrapper.vm.result.fileName).toBe('relatorio.pdf')
     })
   })
 })

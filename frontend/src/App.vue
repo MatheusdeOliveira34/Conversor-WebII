@@ -28,15 +28,37 @@
             <span class="file-card__size">{{ fileSize }}</span>
           </div>
 
-          <format-selector
-            v-if="targetOptions.length"
-            v-model="targetFormat"
-            :options="targetOptions"
-          />
+          <template v-if="targetOptions.length">
+            <format-selector
+              :value="targetFormat"
+              :options="targetOptions"
+              :disabled="loading"
+              @input="onTargetSelected"
+            />
+
+            <button
+              v-if="!result && !error"
+              type="button"
+              class="btn btn--primary"
+              :disabled="!canConvert"
+              @click="submit"
+            >
+              <span v-if="loading" class="spinner" aria-hidden="true" />
+              {{ loading ? 'Convertendo…' : 'Converter' }}
+            </button>
+          </template>
           <p v-else class="app-alert app-alert--error" role="alert">
             Conversão não suportada para este arquivo.
           </p>
         </template>
+
+        <result-panel
+          v-if="result || error"
+          :result="result"
+          :error="error"
+          @download="download"
+          @retry="submit"
+        />
       </section>
     </main>
   </div>
@@ -45,7 +67,9 @@
 <script>
 import FileDropzone from '@/components/FileDropzone.vue'
 import FormatSelector from '@/components/FormatSelector.vue'
-import { getFormats } from '@/services/conversionApi'
+import ResultPanel from '@/components/ResultPanel.vue'
+import { convert, errorMessage, getFormats } from '@/services/conversionApi'
+import { createDownloadUrl, triggerDownload } from '@/utils/download'
 import { formatFileSize, formatFromFileName, targetFormatsFor } from '@/utils/fileFormat'
 
 export const FORMATS_ERROR = 'Não foi possível carregar os formatos. Recarregue a página.'
@@ -53,7 +77,7 @@ export const FORMATS_ERROR = 'Não foi possível carregar os formatos. Recarregu
 export default {
   name: 'App',
 
-  components: { FileDropzone, FormatSelector },
+  components: { FileDropzone, FormatSelector, ResultPanel },
 
   data () {
     return {
@@ -64,7 +88,8 @@ export default {
       formatsError: null,
       loading: false,
       result: null,
-      error: null
+      error: null,
+      downloadUrl: null
     }
   },
 
@@ -77,6 +102,9 @@ export default {
     },
     targetOptions () {
       return targetFormatsFor(this.conversions, this.sourceFormat)
+    },
+    canConvert () {
+      return Boolean(this.file && this.targetFormat) && !this.loading
     }
   },
 
@@ -111,6 +139,39 @@ export default {
       // UC01 A1/A2: arquivo rejeitado não fica selecionado
       this.file = null
       this.targetFormat = null
+    },
+
+    onTargetSelected (format) {
+      // Outro destino pede nova conversão: some o resultado anterior
+      this.targetFormat = format
+      this.result = null
+      this.error = null
+    },
+
+    // UC01, passos 6–8: envia, gera o download e mostra o resultado
+    async submit () {
+      if (!this.canConvert) {
+        return
+      }
+      this.loading = true
+      this.result = null
+      this.error = null
+      try {
+        const { contentBase64, ...metadata } = await convert(this.file, this.targetFormat)
+        this.downloadUrl = createDownloadUrl(contentBase64, metadata.contentType)
+        this.result = metadata
+        this.download()
+      } catch (e) {
+        this.error = errorMessage(e)
+      } finally {
+        this.loading = false
+      }
+    },
+
+    download () {
+      if (this.downloadUrl && this.result) {
+        triggerDownload(this.downloadUrl, this.result.fileName)
+      }
     }
   }
 }
@@ -156,6 +217,22 @@ export default {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+/* Indicador de progresso no botão "Converter" (RF08) */
+.spinner {
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .app-alert {
