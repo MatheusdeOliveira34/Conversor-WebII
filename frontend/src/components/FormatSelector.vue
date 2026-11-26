@@ -101,6 +101,12 @@ export default {
   border-color: var(--color-primary);
 }
 
+.format-selector__option:focus-within {
+  /* O rádio é invisível: o foco do teclado aparece no botão inteiro */
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .format-selector__option--selected {
   border-color: var(--color-primary);
   background-color: var(--color-primary);
@@ -118,5 +124,16 @@ export default {
 .format-selector[disabled] .format-selector__option {
   cursor: not-allowed;
   opacity: 0.6;
+}
+
+/* Abaixo de 600 px os botões de formato empilham (interface.md, seção 4) */
+@media (max-width: 599px) {
+  .format-selector__options {
+    flex-direction: column;
+  }
+
+  .format-selector__option {
+    width: 100%;
+  }
 }
 </style>

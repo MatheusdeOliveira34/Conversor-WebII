@@ -1,9 +1,10 @@
-import { base64ToBlob, createDownloadUrl, triggerDownload } from '@/utils/download'
+import { base64ToBlob, createDownloadUrl, revokeDownloadUrl, triggerDownload } from '@/utils/download'
 
 describe('download', () => {
   afterEach(() => {
     jest.restoreAllMocks()
     delete URL.createObjectURL
+    delete URL.revokeObjectURL
   })
 
   it('base64ToBlob decodifica para os mesmos bytes com o MIME informado', async () => {
@@ -37,5 +38,15 @@ describe('download', () => {
 
     expect(click).toHaveBeenCalledTimes(1)
     expect(document.querySelector('a')).toBeNull()
+  })
+
+  it('revokeDownloadUrl libera a URL e ignora valor vazio', () => {
+    URL.revokeObjectURL = jest.fn()
+
+    revokeDownloadUrl('blob:http://localhost/123')
+    revokeDownloadUrl(null)
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledTimes(1)
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:http://localhost/123')
   })
 })

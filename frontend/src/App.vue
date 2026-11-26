@@ -6,7 +6,7 @@
         <p class="app-subtitle">PDF • Word • Excel</p>
       </header>
 
-      <section class="app-content" aria-label="Conversão de arquivo">
+      <section class="app-content" aria-label="Conversão de arquivo" :aria-busy="loading ? 'true' : 'false'">
         <file-dropzone
           v-if="!file"
           :loading="loadingFormats"
@@ -15,10 +15,6 @@
           @error="onFileError"
         />
 
-        <p v-if="formatsError" class="app-alert app-alert--error" role="alert">
-          {{ formatsError }}
-        </p>
-
         <template v-if="file">
           <div class="file-card">
             <span class="format-tag" :class="`format-tag--${sourceFormat.toLowerCase()}`">
@@ -26,15 +22,29 @@
             </span>
             <span class="file-card__name" :title="file.name">{{ file.name }}</span>
             <span class="file-card__size">{{ fileSize }}</span>
+            <button
+              type="button"
+              class="file-card__remove"
+              :disabled="loading"
+              :aria-label="`Remover ${file.name}`"
+              @click="reset"
+            >
+              Remover
+            </button>
           </div>
 
           <template v-if="targetOptions.length">
-            <format-selector
-              :value="targetFormat"
-              :options="targetOptions"
-              :disabled="loading"
-              @input="onTargetSelected"
-            />
+            <div class="app-target">
+              <format-selector
+                :value="targetFormat"
+                :options="targetOptions"
+                :disabled="loading"
+                @input="onTargetSelected"
+              />
+              <p class="app-notice">
+                A conversão leva texto e tabelas; imagens e formatação podem se perder.
+              </p>
+            </div>
 
             <button
               v-if="!result && !error"
@@ -47,18 +57,32 @@
               {{ loading ? 'Convertendo…' : 'Converter' }}
             </button>
           </template>
-          <p v-else class="app-alert app-alert--error" role="alert">
-            Conversão não suportada para este arquivo.
-          </p>
         </template>
 
-        <result-panel
-          v-if="result || error"
-          :result="result"
-          :error="error"
-          @download="download"
-          @retry="submit"
-        />
+        <!-- Região anunciada por leitores de tela: progresso, sucesso e erros -->
+        <div class="app-status" aria-live="polite">
+          <span v-if="loading" class="sr-only">Convertendo o arquivo, aguarde.</span>
+
+          <p v-if="formatsError" class="app-alert app-alert--error">
+            <span class="app-alert__icon" aria-hidden="true">!</span>
+            {{ formatsError }}
+          </p>
+
+          <p v-if="file && !targetOptions.length" class="app-alert app-alert--error">
+            <span class="app-alert__icon" aria-hidden="true">!</span>
+            Conversão não suportada para este arquivo.
+          </p>
+
+          <result-panel
+            v-if="result || error"
+            :result="result"
+            :error="error"
+            :disabled="loading"
+            @download="download"
+            @retry="submit"
+            @reset="reset"
+          />
+        </div>
       </section>
     </main>
   </div>
@@ -69,7 +93,7 @@ import FileDropzone from '@/components/FileDropzone.vue'
 import FormatSelector from '@/components/FormatSelector.vue'
 import ResultPanel from '@/components/ResultPanel.vue'
 import { convert, errorMessage, getFormats } from '@/services/conversionApi'
-import { createDownloadUrl, triggerDownload } from '@/utils/download'
+import { createDownloadUrl, revokeDownloadUrl, triggerDownload } from '@/utils/download'
 import { formatFileSize, formatFromFileName, targetFormatsFor } from '@/utils/fileFormat'
 
 export const FORMATS_ERROR = 'Não foi possível carregar os formatos. Recarregue a página.'
@@ -112,6 +136,10 @@ export default {
     this.loadFormats()
   },
 
+  beforeDestroy () {
+    revokeDownloadUrl(this.downloadUrl)
+  },
+
   methods: {
     // UC02: a tela pede as conversões suportadas ao abrir
     async loadFormats () {
@@ -131,8 +159,7 @@ export default {
       // UC01 A3: trocar o arquivo limpa o destino e o resultado anteriores
       this.file = file
       this.targetFormat = null
-      this.result = null
-      this.error = null
+      this.clearResult()
     },
 
     onFileError () {
@@ -144,8 +171,7 @@ export default {
     onTargetSelected (format) {
       // Outro destino pede nova conversão: some o resultado anterior
       this.targetFormat = format
-      this.result = null
-      this.error = null
+      this.clearResult()
     },
 
     // UC01, passos 6–8: envia, gera o download e mostra o resultado
@@ -154,8 +180,7 @@ export default {
         return
       }
       this.loading = true
-      this.result = null
-      this.error = null
+      this.clearResult()
       try {
         const { contentBase64, ...metadata } = await convert(this.file, this.targetFormat)
         this.downloadUrl = createDownloadUrl(contentBase64, metadata.contentType)
@@ -172,6 +197,24 @@ export default {
       if (this.downloadUrl && this.result) {
         triggerDownload(this.downloadUrl, this.result.fileName)
       }
+    },
+
+    // UC03: "Nova conversão" ou "Remover" voltam ao estado inicial
+    reset () {
+      if (this.loading) {
+        return // UC03 A1: bloqueado enquanto a conversão está em andamento
+      }
+      this.file = null
+      this.targetFormat = null
+      this.clearResult()
+    },
+
+    /** Limpa resultado e erro e libera a URL do download anterior (URL.revokeObjectURL). */
+    clearResult () {
+      revokeDownloadUrl(this.downloadUrl)
+      this.downloadUrl = null
+      this.result = null
+      this.error = null
     }
   }
 }
@@ -235,10 +278,49 @@ export default {
   }
 }
 
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation-duration: 2.4s;
+  }
+}
+
+.app-target {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+/* Aviso fixo de fidelidade (interface.md, seção 4) */
+.app-notice {
+  font-size: var(--font-size-help);
+  color: var(--color-text-muted);
+}
+
+.app-status:empty {
+  display: none;
+}
+
 .app-alert {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius);
   font-size: var(--font-size-label);
+}
+
+.app-alert__icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--color-error);
+  color: #ffffff;
+  font-size: var(--font-size-help);
+  font-weight: 700;
 }
 
 .app-alert--error {
@@ -272,6 +354,27 @@ export default {
   white-space: nowrap;
 }
 
+/* Ação secundária como link (interface.md, seção 4) */
+.file-card__remove {
+  padding: 4px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--color-primary);
+  font-size: var(--font-size-label);
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.file-card__remove:hover:not(:disabled) {
+  color: var(--color-primary-hover);
+}
+
+.file-card__remove:disabled {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
 /* Etiqueta de formato: cor + texto, nunca só a cor */
 .format-tag {
   display: inline-block;
@@ -293,5 +396,25 @@ export default {
 
 .format-tag--xlsx {
   background-color: var(--color-xlsx);
+}
+
+/* Responsivo (RNF09): abaixo de 600 px o cartão ocupa a largura com margem de 16 px */
+@media (max-width: 599px) {
+  .app {
+    padding: var(--space-2);
+  }
+
+  .app-card {
+    max-width: none;
+    padding: var(--space-3) var(--space-2);
+  }
+
+  .file-card {
+    flex-wrap: wrap;
+  }
+
+  .file-card__name {
+    flex-basis: calc(100% - 64px);
+  }
 }
 </style>

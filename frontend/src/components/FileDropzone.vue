@@ -29,7 +29,13 @@
       </template>
     </label>
 
-    <p v-if="errorMessage" class="file-dropzone__error">{{ errorMessage }}</p>
+    <!-- Sempre no DOM para o leitor de tela anunciar a mensagem quando ela aparecer -->
+    <div class="file-dropzone__status" aria-live="polite">
+      <p v-if="errorMessage" class="file-dropzone__error">
+        <span class="file-dropzone__error-icon" aria-hidden="true">!</span>
+        {{ errorMessage }}
+      </p>
+    </div>
   </div>
 </template>
 
@@ -150,6 +156,13 @@ export default {
   background-color: #eff6ff;
 }
 
+.file-dropzone__input:focus-visible + .file-dropzone__area {
+  /* Foco do teclado no input escondido aparece na área de upload */
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-color: var(--color-primary);
+}
+
 .file-dropzone__area--disabled {
   cursor: not-allowed;
   opacity: 0.6;
@@ -175,8 +188,25 @@ export default {
 }
 
 .file-dropzone__error {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   margin-top: var(--space-1);
   font-size: var(--font-size-label);
   color: var(--color-error);
+}
+
+.file-dropzone__error-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: var(--color-error);
+  color: #ffffff;
+  font-size: var(--font-size-help);
+  font-weight: 700;
 }
 </style>

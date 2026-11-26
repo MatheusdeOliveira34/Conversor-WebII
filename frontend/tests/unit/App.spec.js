@@ -1,7 +1,7 @@
 import { shallowMount } from '@vue/test-utils'
 import App, { FORMATS_ERROR } from '@/App.vue'
 import { convert, getFormats } from '@/services/conversionApi'
-import { createDownloadUrl, triggerDownload } from '@/utils/download'
+import { createDownloadUrl, revokeDownloadUrl, triggerDownload } from '@/utils/download'
 
 jest.mock('@/services/conversionApi', () => ({
   ...jest.requireActual('@/services/conversionApi'),
@@ -11,6 +11,7 @@ jest.mock('@/services/conversionApi', () => ({
 
 jest.mock('@/utils/download', () => ({
   createDownloadUrl: jest.fn(() => 'blob:http://localhost/1'),
+  revokeDownloadUrl: jest.fn(),
   triggerDownload: jest.fn()
 }))
 
@@ -90,7 +91,9 @@ describe('App.vue', () => {
       getFormats.mockRejectedValue(new Error('Network Error'))
       const wrapper = await mountLoaded()
 
-      expect(wrapper.find('[role="alert"]').text()).toBe(FORMATS_ERROR)
+      const alert = wrapper.find('.app-status .app-alert--error')
+      expect(alert.text()).toContain(FORMATS_ERROR)
+      expect(wrapper.find('.app-status').attributes('aria-live')).toBe('polite')
       expect(wrapper.findComponent({ name: 'FileDropzone' }).props('disabled')).toBe(true)
     })
   })
@@ -209,6 +212,92 @@ describe('App.vue', () => {
       expect(convert).toHaveBeenCalledTimes(2)
       expect(wrapper.vm.error).toBeNull()
       expect(wrapper.vm.result.fileName).toBe('relatorio.pdf')
+    })
+  })
+
+  describe('UC03 — nova conversão, acessibilidade e aviso', () => {
+    async function converted () {
+      convert.mockResolvedValue(RESPONSE)
+      const wrapper = await mountLoaded()
+      await selectFile(wrapper)
+      wrapper.findComponent({ name: 'FormatSelector' }).vm.$emit('input', 'PDF')
+      await wrapper.vm.$nextTick()
+      await wrapper.find('.btn--primary').trigger('click')
+      await flushPromises()
+      return wrapper
+    }
+
+    it('"Nova conversão" volta ao estado inicial e libera a URL do download', async () => {
+      const wrapper = await converted()
+
+      wrapper.findComponent({ name: 'ResultPanel' }).vm.$emit('reset')
+      await wrapper.vm.$nextTick()
+
+      expect(revokeDownloadUrl).toHaveBeenCalledWith('blob:http://localhost/1')
+      expect(wrapper.vm.file).toBeNull()
+      expect(wrapper.vm.targetFormat).toBeNull()
+      expect(wrapper.vm.result).toBeNull()
+      expect(wrapper.vm.error).toBeNull()
+      expect(wrapper.vm.downloadUrl).toBeNull()
+      expect(wrapper.findComponent({ name: 'FileDropzone' }).exists()).toBe(true)
+      expect(wrapper.findComponent({ name: 'ResultPanel' }).exists()).toBe(false)
+    })
+
+    it('"Remover" limpa a seleção do arquivo', async () => {
+      const wrapper = await mountLoaded()
+      await selectFile(wrapper)
+
+      await wrapper.find('.file-card__remove').trigger('click')
+
+      expect(wrapper.vm.file).toBeNull()
+      expect(wrapper.findComponent({ name: 'FileDropzone' }).exists()).toBe(true)
+    })
+
+    it('UC03 A1: "Remover" fica desabilitado durante a conversão', async () => {
+      convert.mockReturnValue(new Promise(() => {}))
+      const wrapper = await mountLoaded()
+      await selectFile(wrapper)
+      wrapper.findComponent({ name: 'FormatSelector' }).vm.$emit('input', 'PDF')
+      await wrapper.vm.$nextTick()
+
+      await wrapper.find('.btn--primary').trigger('click')
+
+      expect(wrapper.find('.file-card__remove').attributes('disabled')).toBeDefined()
+      wrapper.vm.reset()
+      expect(wrapper.vm.file).not.toBeNull()
+      expect(wrapper.find('.app-content').attributes('aria-busy')).toBe('true')
+      expect(wrapper.find('.app-status .sr-only').text()).toBe('Convertendo o arquivo, aguarde.')
+    })
+
+    it('trocar o destino libera o download anterior', async () => {
+      const wrapper = await converted()
+
+      wrapper.findComponent({ name: 'FormatSelector' }).vm.$emit('input', 'XLSX')
+
+      expect(revokeDownloadUrl).toHaveBeenCalledWith('blob:http://localhost/1')
+      expect(wrapper.vm.result).toBeNull()
+    })
+
+    it('o resultado é anunciado na região aria-live', async () => {
+      const wrapper = await converted()
+
+      expect(wrapper.find('.app-status').findComponent({ name: 'ResultPanel' }).exists()).toBe(true)
+    })
+
+    it('mostra o aviso de fidelidade sob o seletor', async () => {
+      const wrapper = await mountLoaded()
+      await selectFile(wrapper)
+
+      expect(wrapper.find('.app-notice').text())
+        .toBe('A conversão leva texto e tabelas; imagens e formatação podem se perder.')
+    })
+
+    it('libera a URL do download ao destruir a tela', async () => {
+      const wrapper = await converted()
+
+      wrapper.destroy()
+
+      expect(revokeDownloadUrl).toHaveBeenCalledWith('blob:http://localhost/1')
     })
   })
 })

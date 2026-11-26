@@ -22,7 +22,8 @@ describe('FileDropzone.vue', () => {
 
     expect(wrapper.emitted('file-selected')).toBeUndefined()
     expect(wrapper.emitted('error')[0]).toEqual([MESSAGES.UNSUPPORTED_TYPE])
-    expect(wrapper.find('.file-dropzone__error').text()).toBe(MESSAGES.UNSUPPORTED_TYPE)
+    expect(wrapper.find('.file-dropzone__error').text()).toContain(MESSAGES.UNSUPPORTED_TYPE)
+    expect(wrapper.find('.file-dropzone__status').attributes('aria-live')).toBe('polite')
   })
 
   it('rejeita arquivo acima de 10 MB', async () => {

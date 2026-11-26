@@ -104,15 +104,15 @@ frontend/
 
 | Arquivo | Responsabilidade |
 | --- | --- |
-| `src/App.vue` | Estado da tela (`file`, `targetFormat`, `conversions`, `loadingFormats`, `formatsError`, `loading`, `result`, `error`, `downloadUrl`) e orquestração; chama `getFormats()` ao abrir (UC02) e `convert()` no botão "Converter" |
+| `src/App.vue` | Estado da tela (`file`, `targetFormat`, `conversions`, `loadingFormats`, `formatsError`, `loading`, `result`, `error`, `downloadUrl`) e orquestração; chama `getFormats()` ao abrir (UC02) e `convert()` no botão "Converter"; `reset()` volta ao estado inicial (UC03) e libera a URL do download anterior. Mensagens ficam numa região `aria-live="polite"` |
 | `src/components/FileDropzone.vue` | Clique/arrastar (`<label>` ligado ao `<input type="file">`), valida extensão, tamanho e arquivo vazio; emite `file-selected` (arquivo, formato) ou `error` (mensagem) |
 | `src/components/FormatSelector.vue` | Recebe `options` (só os destinos válidos da origem) via prop, mostra PDF / Word / Excel como botões de rádio e emite `input` (funciona com `v-model`) |
-| `src/components/ResultPanel.vue` | Mostra sucesso (nome, tamanho, duração) ou a mensagem de erro; emite `download` ("Baixar novamente") e `retry` ("Tentar novamente") |
+| `src/components/ResultPanel.vue` | Mostra sucesso (nome, tamanho, duração) ou a mensagem de erro; emite `download` ("Baixar novamente"), `retry` ("Tentar novamente") e `reset` ("Nova conversão"); botões desabilitados pela prop `disabled` |
 | `src/services/conversionApi.js` | Axios com `baseURL` de `VUE_APP_API_URL`; `getFormats()`, `convert(file, target)` e `errorMessage(error)`, que usa o `message` do `ErrorResponse` (ou "Servidor indisponível. Tente novamente." sem resposta) |
-| `src/utils/download.js` | Converte base64 em `Blob`, cria a URL com `URL.createObjectURL` e dispara o download; a URL fica guardada para "Baixar novamente" |
+| `src/utils/download.js` | Converte base64 em `Blob`, cria a URL com `URL.createObjectURL` e dispara o download; a URL fica guardada para "Baixar novamente" e é liberada com `URL.revokeObjectURL` (`revokeDownloadUrl`) na nova conversão |
 | `src/utils/fileFormat.js` | Mapa extensão → formato, limite de 10 MB (espelhando o back-end), `validateFile`, `formatFileSize` e `targetFormatsFor` |
 | `src/assets/styles/variables.css` | Design tokens (cores, tipografia, espaçamento) de [`interface.md`](interface.md) |
-| `src/assets/styles/base.css` | Reset leve, fonte Inter, cor de fundo, foco visível global e botões compartilhados (`.btn--primary`, `.btn--outline`) |
+| `src/assets/styles/base.css` | Reset leve, fonte Inter, cor de fundo, foco visível global, `.sr-only` e botões compartilhados (`.btn--primary`, `.btn--outline`) |
 
 ## 4. Comunicação entre front-end e back-end
 

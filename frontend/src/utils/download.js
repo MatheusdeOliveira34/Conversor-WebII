@@ -28,3 +28,10 @@ export function triggerDownload (url, fileName) {
   link.click()
   document.body.removeChild(link)
 }
+
+/** Libera a memória de uma URL criada por createDownloadUrl (UC03, passo 3). */
+export function revokeDownloadUrl (url) {
+  if (url) {
+    URL.revokeObjectURL(url)
+  }
+}

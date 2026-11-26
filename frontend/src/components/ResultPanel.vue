@@ -21,6 +21,7 @@
         v-if="isSuccess"
         type="button"
         class="btn btn--outline"
+        :disabled="disabled"
         @click="$emit('download')"
       >
         Baixar novamente
@@ -29,9 +30,18 @@
         v-else
         type="button"
         class="btn btn--outline"
+        :disabled="disabled"
         @click="$emit('retry')"
       >
         Tentar novamente
+      </button>
+      <button
+        type="button"
+        class="result-panel__reset"
+        :disabled="disabled"
+        @click="$emit('reset')"
+      >
+        Nova conversão
       </button>
     </div>
   </div>
@@ -43,6 +53,7 @@ import { formatFileSize } from '@/utils/fileFormat'
 /**
  * Resultado da conversão. Com `result` (ConversionResponse sem o base64) mostra sucesso
  * e emite `download`; com `error` (mensagem) mostra o erro e emite `retry`.
+ * Nos dois casos "Nova conversão" emite `reset` (UC03).
  */
 export default {
   name: 'ResultPanel',
@@ -55,6 +66,10 @@ export default {
     error: {
       type: String,
       default: null
+    },
+    disabled: {
+      type: Boolean,
+      default: false
     }
   },
 
@@ -137,6 +152,29 @@ export default {
 .result-panel__actions {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-1);
+}
+
+/* Ação secundária como link (interface.md, seção 4) */
+.result-panel__reset {
+  padding: var(--space-1);
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--color-primary);
+  font-weight: 500;
+  text-decoration: underline;
+}
+
+.result-panel__reset:hover:not(:disabled) {
+  color: var(--color-primary-hover);
+}
+
+@media (max-width: 599px) {
+  .result-panel__actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 </style>

@@ -18,7 +18,7 @@ describe('ResultPanel.vue', () => {
     expect(wrapper.text()).toContain('Conversão concluída.')
     expect(wrapper.find('.result-panel__detail').text()).toBe('relatorio.pdf · 48 KB · 312 ms')
 
-    await wrapper.find('button').trigger('click')
+    await wrapper.find('.btn--outline').trigger('click')
     expect(wrapper.emitted('download')).toHaveLength(1)
   })
 
@@ -29,7 +29,7 @@ describe('ResultPanel.vue', () => {
     expect(wrapper.classes()).toContain('result-panel--error')
     expect(wrapper.find('.result-panel__detail').text()).toBe(message)
 
-    const button = wrapper.find('button')
+    const button = wrapper.find('.btn--outline')
     expect(button.text()).toBe('Tentar novamente')
     await button.trigger('click')
     expect(wrapper.emitted('retry')).toHaveLength(1)
@@ -41,5 +41,25 @@ describe('ResultPanel.vue', () => {
 
     expect(success.find('.result-panel__icon').text()).toBe('✓')
     expect(failure.find('.result-panel__icon').text()).toBe('!')
+  })
+
+  it.each([
+    ['sucesso', { result: RESULT }],
+    ['erro', { error: 'Falhou' }]
+  ])('"Nova conversão" emite reset no estado de %s', async (_, propsData) => {
+    const wrapper = shallowMount(ResultPanel, { propsData })
+
+    const reset = wrapper.find('.result-panel__reset')
+    expect(reset.text()).toBe('Nova conversão')
+    await reset.trigger('click')
+    expect(wrapper.emitted('reset')).toHaveLength(1)
+  })
+
+  it('desabilita os botões quando disabled', () => {
+    const wrapper = shallowMount(ResultPanel, { propsData: { result: RESULT, disabled: true } })
+
+    wrapper.findAll('button').wrappers.forEach(button => {
+      expect(button.attributes('disabled')).toBeDefined()
+    })
   })
 })
