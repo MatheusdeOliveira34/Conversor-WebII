@@ -85,6 +85,15 @@ Limite de upload configurado em `backend/src/main/resources/application.yml` (`s
 - **`ConverterRegistry`** recebe do Spring todos os beans `DocumentConverter` e os indexa por origem → destino. `find(source, target)` lança `UnsupportedConversionException` quando origem e destino são iguais ou o par não tem conversor; dois conversores para o mesmo par impedem a aplicação de subir.
 - **`ConversionService`** é a única porta da camada de serviço para o controller; `supportedConversions()` alimenta o `GET /formats`.
 
+### Fluxo do `POST /api/v1/conversions`
+
+1. `ConversionController` recebe `file` e `targetFormat` do multipart e monta o `ConversionRequest`.
+2. `ConversionMapper.toDomain` sanitiza o nome, resolve o formato pela extensão e gera o `SourceDocument`.
+3. `ConversionService.convert` chama `FileTypeDetector.validate` (conteúdo × extensão), pega o conversor no `ConverterRegistry`, converte e mede a duração, devolvendo um `ConvertedDocument`.
+4. `ConversionMapper.toResponse` monta o `ConversionResponse` com nome final, MIME, tamanho, duração e base64.
+
+Cada conversor lança `ConversionException` com `CORRUPTED_FILE` quando não consegue ler a entrada e `NO_CONTENT` quando não há texto nem tabela para converter. O `DocxToPdfConverter` (C1) percorre parágrafos e tabelas do Word na ordem em que aparecem e os escreve em PDF A4 com OpenPDF.
+
 ## 3. Organização do front-end
 
 Sem Vuex e sem Vue Router: uma tela, e o estado cabe no componente raiz.

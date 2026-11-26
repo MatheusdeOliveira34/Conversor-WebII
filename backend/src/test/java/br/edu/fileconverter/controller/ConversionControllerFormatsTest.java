@@ -9,6 +9,7 @@ import br.edu.fileconverter.config.CorsConfig;
 import br.edu.fileconverter.converter.ConverterRegistry;
 import br.edu.fileconverter.mapper.ConversionMapper;
 import br.edu.fileconverter.service.ConversionService;
+import br.edu.fileconverter.service.FileTypeDetector;
 import br.edu.fileconverter.support.StubConverter;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 /** Endpoint de formatos com os seis pares registrados por conversores falsos. */
 @WebMvcTest(ConversionController.class)
-@Import({ConversionService.class, ConversionMapper.class, CorsConfig.class,
+@Import({ConversionService.class, FileTypeDetector.class, ConversionMapper.class, CorsConfig.class,
         ConversionControllerFormatsTest.Converters.class})
 class ConversionControllerFormatsTest {
 
