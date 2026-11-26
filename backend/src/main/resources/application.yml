@@ -10,3 +10,8 @@ spring:
 
 server:
   port: 8080
+
+app:
+  cors:
+    # única origem que pode chamar a API (front-end em desenvolvimento)
+    allowed-origin: http://localhost:8081

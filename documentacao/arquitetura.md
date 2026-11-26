@@ -79,6 +79,12 @@ br.edu.fileconverter
 
 Limite de upload configurado em `backend/src/main/resources/application.yml` (`spring.servlet.multipart.max-file-size: 10MB`).
 
+### Detecção de formato e registro de conversores
+
+- **`FileTypeDetector`** decide o formato pelo conteúdo (RF03, RN02): PDF começa com `%PDF-`; DOCX e XLSX são ZIP (`PK\3\4`) e se diferenciam pela entrada `word/document.xml` ou `xl/workbook.xml`. Os nomes das entradas ficam sem compressão dentro do ZIP, então a busca é feita nos bytes crus, sem descompactar. Arquivo vazio lança `InvalidFileException` com `EMPTY_FILE`; formato desconhecido ou diferente da extensão lança `UNSUPPORTED_FILE_TYPE`.
+- **`ConverterRegistry`** recebe do Spring todos os beans `DocumentConverter` e os indexa por origem → destino. `find(source, target)` lança `UnsupportedConversionException` quando origem e destino são iguais ou o par não tem conversor; dois conversores para o mesmo par impedem a aplicação de subir.
+- **`ConversionService`** é a única porta da camada de serviço para o controller; `supportedConversions()` alimenta o `GET /formats`.
+
 ## 3. Organização do front-end
 
 Sem Vuex e sem Vue Router: uma tela, e o estado cabe no componente raiz.
@@ -130,11 +136,13 @@ GET /api/v1/conversions/formats
 
 200 OK
 [
-  { "sourceFormat": "DOCX", "targetFormats": ["PDF", "XLSX"] },
   { "sourceFormat": "PDF",  "targetFormats": ["DOCX", "XLSX"] },
+  { "sourceFormat": "DOCX", "targetFormats": ["PDF", "XLSX"] },
   { "sourceFormat": "XLSX", "targetFormats": ["PDF", "DOCX"] }
 ]
 ```
+
+A lista sai do `ConverterRegistry`, sempre na ordem do enum `FileFormat` (PDF, DOCX, XLSX), e só traz os pares que têm conversor registrado.
 
 ```http
 POST /api/v1/conversions
