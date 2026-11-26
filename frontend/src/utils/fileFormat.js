@@ -65,3 +65,21 @@ export function formatFileSize (bytes) {
   }
   return `${(bytes / (1024 * 1024)).toFixed(1).replace('.', ',')} MB`
 }
+
+/** Rótulo mostrado ao usuário para cada formato (interface.md: "PDF • Word • Excel"). */
+export const FORMAT_LABELS = Object.freeze({
+  PDF: 'PDF',
+  DOCX: 'Word',
+  XLSX: 'Excel'
+})
+
+/**
+ * Destinos válidos para a origem, a partir da resposta de GET /formats (RF04).
+ * @param {Array<{sourceFormat: string, targetFormats: string[]}>} conversions
+ * @param {string|null} sourceFormat
+ * @returns {string[]}
+ */
+export function targetFormatsFor (conversions, sourceFormat) {
+  const entry = (conversions || []).find(item => item.sourceFormat === sourceFormat)
+  return entry ? entry.targetFormats.filter(target => target !== sourceFormat) : []
+}

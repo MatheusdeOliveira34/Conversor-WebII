@@ -9,17 +9,34 @@
       <section class="app-content" aria-label="Conversão de arquivo">
         <file-dropzone
           v-if="!file"
+          :loading="loadingFormats"
+          :disabled="Boolean(formatsError)"
           @file-selected="onFileSelected"
           @error="onFileError"
         />
 
-        <div v-else class="file-card">
-          <span class="format-tag" :class="`format-tag--${sourceFormat.toLowerCase()}`">
-            {{ sourceFormat }}
-          </span>
-          <span class="file-card__name" :title="file.name">{{ file.name }}</span>
-          <span class="file-card__size">{{ fileSize }}</span>
-        </div>
+        <p v-if="formatsError" class="app-alert app-alert--error" role="alert">
+          {{ formatsError }}
+        </p>
+
+        <template v-if="file">
+          <div class="file-card">
+            <span class="format-tag" :class="`format-tag--${sourceFormat.toLowerCase()}`">
+              {{ sourceFormat }}
+            </span>
+            <span class="file-card__name" :title="file.name">{{ file.name }}</span>
+            <span class="file-card__size">{{ fileSize }}</span>
+          </div>
+
+          <format-selector
+            v-if="targetOptions.length"
+            v-model="targetFormat"
+            :options="targetOptions"
+          />
+          <p v-else class="app-alert app-alert--error" role="alert">
+            Conversão não suportada para este arquivo.
+          </p>
+        </template>
       </section>
     </main>
   </div>
@@ -27,18 +44,24 @@
 
 <script>
 import FileDropzone from '@/components/FileDropzone.vue'
-import { formatFileSize, formatFromFileName } from '@/utils/fileFormat'
+import FormatSelector from '@/components/FormatSelector.vue'
+import { getFormats } from '@/services/conversionApi'
+import { formatFileSize, formatFromFileName, targetFormatsFor } from '@/utils/fileFormat'
+
+export const FORMATS_ERROR = 'Não foi possível carregar os formatos. Recarregue a página.'
 
 export default {
   name: 'App',
 
-  components: { FileDropzone },
+  components: { FileDropzone, FormatSelector },
 
   data () {
     return {
       file: null,
       targetFormat: null,
       conversions: [],
+      loadingFormats: true,
+      formatsError: null,
       loading: false,
       result: null,
       error: null
@@ -51,10 +74,31 @@ export default {
     },
     fileSize () {
       return this.file ? formatFileSize(this.file.size) : ''
+    },
+    targetOptions () {
+      return targetFormatsFor(this.conversions, this.sourceFormat)
     }
   },
 
+  created () {
+    this.loadFormats()
+  },
+
   methods: {
+    // UC02: a tela pede as conversões suportadas ao abrir
+    async loadFormats () {
+      this.loadingFormats = true
+      this.formatsError = null
+      try {
+        this.conversions = await getFormats()
+      } catch (e) {
+        this.conversions = []
+        this.formatsError = FORMATS_ERROR
+      } finally {
+        this.loadingFormats = false
+      }
+    },
+
     onFileSelected (file) {
       // UC01 A3: trocar o arquivo limpa o destino e o resultado anteriores
       this.file = file
@@ -112,6 +156,18 @@ export default {
   display: flex;
   flex-direction: column;
   gap: var(--space-3);
+}
+
+.app-alert {
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius);
+  font-size: var(--font-size-label);
+}
+
+.app-alert--error {
+  color: var(--color-error);
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
 }
 
 /* Cartão do arquivo selecionado (RF07): formato, nome e tamanho */
