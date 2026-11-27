@@ -8,11 +8,15 @@ import br.edu.fileconverter.domain.SourceDocument;
 import java.time.Duration;
 import java.util.Map;
 import java.util.Set;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 /** Regras da conversão; trabalha só com o modelo de domínio, nunca com DTOs. */
 @Service
 public class ConversionService {
+
+    private static final Logger log = LoggerFactory.getLogger(ConversionService.class);
 
     private final ConverterRegistry registry;
     private final FileTypeDetector detector;
@@ -38,6 +42,10 @@ public class ConversionService {
         long start = System.nanoTime();
         byte[] content = converter.convert(source.content());
         Duration duration = Duration.ofNanos(System.nanoTime() - start);
+
+        // RNF12: só metadados, nunca o nome nem o conteúdo do arquivo
+        log.info("Conversão {} → {}: {} bytes → {} bytes em {} ms",
+                source.format(), target, source.content().length, content.length, duration.toMillis());
 
         return new ConvertedDocument(source.baseName(), target, content, duration);
     }
