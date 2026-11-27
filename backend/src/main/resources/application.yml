@@ -7,6 +7,9 @@ spring:
       max-file-size: 10MB
       # um pouco acima do arquivo para caber o campo targetFormat do multipart
       max-request-size: 11MB
+      # RNF04/RNF07: acima deste tamanho o Tomcat gravaria o upload num arquivo temporário;
+      # como é maior que o limite de upload, o arquivo fica sempre em memória
+      file-size-threshold: 11MB
 
 server:
   port: 8080

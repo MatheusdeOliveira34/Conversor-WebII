@@ -77,7 +77,7 @@ br.edu.fileconverter
 | `converter` | Um conversor por par origem → destino, registrados automaticamente pelo Spring |
 | `exception` | Exceções de domínio e tradução para `ErrorResponse` |
 
-Limite de upload configurado em `backend/src/main/resources/application.yml` (`spring.servlet.multipart.max-file-size: 10MB`).
+Limite de upload configurado em `backend/src/main/resources/application.yml` (`spring.servlet.multipart.max-file-size: 10MB`). O `file-size-threshold` fica em 11 MB, acima do limite: assim o Tomcat nunca grava o upload em arquivo temporário e todo arquivo aceito fica só em memória (RNF04, RNF07).
 
 ### Detecção de formato e registro de conversores
 
