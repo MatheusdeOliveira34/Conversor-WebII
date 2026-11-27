@@ -10,6 +10,10 @@ spring:
 
 server:
   port: 8080
+  tomcat:
+    # lê o resto de um upload grande demais antes de responder, para o 413 chegar ao cliente
+    # em vez de a conexão ser cortada no meio do envio
+    max-swallow-size: 20MB
 
 app:
   cors:

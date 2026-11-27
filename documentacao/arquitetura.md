@@ -276,7 +276,7 @@ Um `@RestControllerAdvice` (`GlobalExceptionHandler`) traduz cada exceção em `
 
 | Situação | Exceção | HTTP | `code` | Mensagem ao usuário |
 | --- | --- | --- | --- | --- |
-| Campo `file` ou `targetFormat` ausente / destino inválido | `MissingServletRequestPartException`, `MethodArgumentTypeMismatchException` | 400 | `INVALID_REQUEST` | Requisição inválida |
+| Campo `file` ou `targetFormat` ausente / destino inválido / requisição que não é multipart | `MissingServletRequestPartException`, `MissingServletRequestParameterException`, `MethodArgumentTypeMismatchException`, `HttpMediaTypeNotSupportedException`, `MultipartException` | 400 | `INVALID_REQUEST` | Requisição inválida |
 | Arquivo vazio | `InvalidFileException` | 400 | `EMPTY_FILE` | O arquivo está vazio |
 | Origem igual ao destino ou par inexistente | `UnsupportedConversionException` | 400 | `UNSUPPORTED_CONVERSION` | Conversão não suportada |
 | Acima de 10 MB | `MaxUploadSizeExceededException` | 413 | `FILE_TOO_LARGE` | Arquivo maior que 10 MB |
@@ -284,4 +284,15 @@ Um `@RestControllerAdvice` (`GlobalExceptionHandler`) traduz cada exceção em `
 | Arquivo ilegível | `ConversionException` (causa `IOException`, `NotOfficeXmlFileException`) | 422 | `CORRUPTED_FILE` | Arquivo corrompido |
 | PDF com senha | `ConversionException` (causa `InvalidPasswordException`) | 422 | `PROTECTED_FILE` | PDF protegido por senha |
 | PDF sem texto / planilha vazia | `ConversionException` | 422 | `NO_CONTENT` | Nada para converter |
+| Rota inexistente | `NoResourceFoundException` | 404 | `NOT_FOUND` | Rota não encontrada |
+| Método HTTP errado (ex.: `GET /api/v1/conversions`) | `HttpRequestMethodNotSupportedException` | 405 | `METHOD_NOT_ALLOWED` | Método não permitido |
 | Qualquer outro | `Exception` | 500 | `INTERNAL_ERROR` | Erro inesperado, tente novamente |
+
+Nas exceções de domínio (`InvalidFileException`, `UnsupportedConversionException`, `ConversionException`), a mensagem da resposta é a da própria exceção, já escrita em português para o usuário (ex.: “PDF sem texto. Arquivos escaneados (imagem) não podem ser convertidos.”). Nas exceções do Spring, a mensagem é fixa. Falhas de conversão (422) são registradas no log como aviso; erros 500 são registrados com o stack trace.
+
+O limite de 10 MB só é aplicado pelo Tomcat ao ler o multipart. Por isso `server.tomcat.max-swallow-size` está em 20 MB: o servidor lê o resto do upload grande demais e consegue entregar o 413 ao navegador, em vez de cortar a conexão.
+
+### Segurança e observabilidade
+
+- **Zip bomb (RNF08):** `PoiSecurityConfig` configura o `ZipSecureFile` do POI na subida da aplicação. Nenhuma entrada do DOCX/XLSX pode descompactar para mais de 100 vezes o seu tamanho compactado nem passar de 100 MB. Um arquivo que viole isso falha na leitura e volta como `CORRUPTED_FILE`.
+- **Log de conversões (RNF12):** `ConversionService` registra cada conversão concluída com origem, destino, tamanho de entrada e de saída e duração, por exemplo `Conversão DOCX → PDF: 48213 bytes → 31077 bytes em 312 ms`. O nome e o conteúdo do arquivo não aparecem no log.
