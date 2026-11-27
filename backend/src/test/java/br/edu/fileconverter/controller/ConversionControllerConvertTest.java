@@ -1,6 +1,8 @@
 package br.edu.fileconverter.controller;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.contains;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -44,5 +46,31 @@ class ConversionControllerConvertTest {
         byte[] pdf = Base64.getDecoder().decode(JsonPath.<String>read(body, "$.contentBase64"));
         assertThat(new String(pdf, 0, 5, StandardCharsets.US_ASCII)).isEqualTo("%PDF-");
         assertThat(JsonPath.<Integer>read(body, "$.sizeBytes")).isEqualTo(pdf.length);
+    }
+
+    // CT06 com os conversores reais: a matriz completa da visao.md
+    @Test
+    void listsAllSixRealConversions() throws Exception {
+        mockMvc.perform(get("/api/v1/conversions/formats"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(3))
+                .andExpect(jsonPath("$[0].sourceFormat").value("PDF"))
+                .andExpect(jsonPath("$[0].targetFormats", contains("DOCX", "XLSX")))
+                .andExpect(jsonPath("$[1].sourceFormat").value("DOCX"))
+                .andExpect(jsonPath("$[1].targetFormats", contains("PDF", "XLSX")))
+                .andExpect(jsonPath("$[2].sourceFormat").value("XLSX"))
+                .andExpect(jsonPath("$[2].targetFormats", contains("PDF", "DOCX")));
+    }
+
+    @Test
+    void convertsXlsxToDocx() throws Exception {
+        MockMultipartFile file = new MockMultipartFile(
+                "file", "vendas.xlsx", FileFormat.XLSX.mimeType(), TestDocuments.salesWorkbook());
+
+        mockMvc.perform(multipart("/api/v1/conversions").file(file).param("targetFormat", "DOCX"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fileName").value("vendas.docx"))
+                .andExpect(jsonPath("$.sourceFormat").value("XLSX"))
+                .andExpect(jsonPath("$.targetFormat").value("DOCX"));
     }
 }

@@ -99,6 +99,17 @@ Os conversores que partem de PDF (C3 e C4) usam a classe interna `PdfTextReader`
 - **`PdfToDocxConverter` (C3):** um parágrafo por linha; a primeira linha de cada página, a partir da segunda, começa com quebra de página.
 - **`PdfToXlsxConverter` (C4):** uma aba chamada `PDF`; cada linha não vazia vira uma linha da planilha, com as colunas separadas por tab ou por dois ou mais espaços seguidos. Os valores são gravados como texto.
 
+- **`DocxToXlsxConverter` (C2):** o texto solto do Word vai para a aba `Texto`, um parágrafo por linha; cada tabela vira uma aba própria (`Tabela 1`, `Tabela 2`...). Parágrafos e tabelas vazios são ignorados; sem nenhum dos dois, `NO_CONTENT`.
+
+Os conversores que partem de XLSX (C5 e C6) usam a classe interna `SpreadsheetReader`, que abre a planilha com POI e devolve cada aba como uma tabela de textos:
+
+- valores formatados como o Excel exibe, em pt-BR (ex.: `2,5`); células com fórmula exportam o valor calculado, nunca a fórmula (RN06). Se o POI não souber calcular alguma função, usa o último resultado salvo pelo Excel;
+- linhas sem nenhum valor e colunas vazias nas bordas são descartadas; abas vazias são ignoradas e, se todas forem vazias, a conversão falha com `NO_CONTENT` (“Planilha sem dados”, RN07);
+- arquivo ilegível → `CORRUPTED_FILE`.
+
+- **`XlsxToPdfConverter` (C5):** uma página por aba, com o nome da aba em negrito como título e os dados numa tabela. A primeira linha se repete quando a tabela quebra de página; com 7 colunas ou mais a página fica deitada (A4 paisagem).
+- **`XlsxToDocxConverter` (C6):** para cada aba, um título em negrito com o nome da aba seguido de uma tabela do Word com os dados.
+
 ## 3. Organização do front-end
 
 Sem Vuex e sem Vue Router: uma tela, e o estado cabe no componente raiz.

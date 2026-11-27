@@ -60,6 +60,45 @@ public final class TestDocuments {
         }
     }
 
+    /**
+     * XLSX com três abas: "Vendas" (cabeçalho, uma linha e uma fórmula =B2*C2 que dá 25),
+     * "Vazia" (sem nada) e "Resumo" (uma célula).
+     */
+    public static byte[] salesWorkbook() {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            org.apache.poi.ss.usermodel.Sheet sales = workbook.createSheet("Vendas");
+            org.apache.poi.ss.usermodel.Row header = sales.createRow(0);
+            header.createCell(0).setCellValue("Produto");
+            header.createCell(1).setCellValue("Quantidade");
+            header.createCell(2).setCellValue("Preço");
+            header.createCell(3).setCellValue("Total");
+            org.apache.poi.ss.usermodel.Row line = sales.createRow(1);
+            line.createCell(0).setCellValue("Caneta");
+            line.createCell(1).setCellValue(10);
+            line.createCell(2).setCellValue(2.5);
+            line.createCell(3).setCellFormula("B2*C2");
+            workbook.createSheet("Vazia");
+            workbook.createSheet("Resumo").createRow(0).createCell(0).setCellValue("Fechamento do mês");
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** XLSX com uma aba sem nenhuma célula. */
+    public static byte[] emptyWorkbook() {
+        try (XSSFWorkbook workbook = new XSSFWorkbook();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            workbook.createSheet("Planilha1");
+            workbook.write(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
     /** PDF com um parágrafo. */
     public static byte[] pdf(String paragraph) {
         return pdfPages(paragraph);
