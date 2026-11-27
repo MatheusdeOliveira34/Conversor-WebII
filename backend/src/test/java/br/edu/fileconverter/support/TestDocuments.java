@@ -6,6 +6,10 @@ import com.lowagie.text.pdf.PdfWriter;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import org.apache.pdfbox.pdmodel.PDDocument;
+import org.apache.pdfbox.pdmodel.PDPage;
+import org.apache.pdfbox.pdmodel.encryption.AccessPermission;
+import org.apache.pdfbox.pdmodel.encryption.StandardProtectionPolicy;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
@@ -58,12 +62,52 @@ public final class TestDocuments {
 
     /** PDF com um parágrafo. */
     public static byte[] pdf(String paragraph) {
+        return pdfPages(paragraph);
+    }
+
+    /** PDF com uma página por argumento; cada linha ({@code \n}) vira um parágrafo. */
+    public static byte[] pdfPages(String... pages) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Document document = new Document();
         PdfWriter.getInstance(document, out);
         document.open();
-        document.add(new Paragraph(paragraph));
+        for (int i = 0; i < pages.length; i++) {
+            if (i > 0) {
+                document.newPage();
+            }
+            for (String line : pages[i].split("\n")) {
+                document.add(new Paragraph(line));
+            }
+        }
         document.close();
         return out.toByteArray();
+    }
+
+    /** PDF com uma página em branco, sem nenhum texto (simula um PDF escaneado). */
+    public static byte[] blankPdf() {
+        try (PDDocument document = new PDDocument();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            document.addPage(new PDPage());
+            document.save(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    /** PDF que exige a senha {@code segredo} para abrir. */
+    public static byte[] protectedPdf() {
+        try (PDDocument document = new PDDocument();
+             ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            document.addPage(new PDPage());
+            StandardProtectionPolicy policy =
+                    new StandardProtectionPolicy("dono", "segredo", new AccessPermission());
+            policy.setEncryptionKeyLength(128);
+            document.protect(policy);
+            document.save(out);
+            return out.toByteArray();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 }

@@ -94,6 +94,11 @@ Limite de upload configurado em `backend/src/main/resources/application.yml` (`s
 
 Cada conversor lança `ConversionException` com `CORRUPTED_FILE` quando não consegue ler a entrada e `NO_CONTENT` quando não há texto nem tabela para converter. O `DocxToPdfConverter` (C1) percorre parágrafos e tabelas do Word na ordem em que aparecem e os escreve em PDF A4 com OpenPDF.
 
+Os conversores que partem de PDF (C3 e C4) usam a classe interna `PdfTextReader`, que abre o PDF com PDFBox, extrai o texto página por página (ordenado pela posição na página) e traduz as falhas: PDF com senha → `PROTECTED_FILE` (RN04), PDF sem texto extraível → `NO_CONTENT` (RN05), PDF ilegível → `CORRUPTED_FILE`.
+
+- **`PdfToDocxConverter` (C3):** um parágrafo por linha; a primeira linha de cada página, a partir da segunda, começa com quebra de página.
+- **`PdfToXlsxConverter` (C4):** uma aba chamada `PDF`; cada linha não vazia vira uma linha da planilha, com as colunas separadas por tab ou por dois ou mais espaços seguidos. Os valores são gravados como texto.
+
 ## 3. Organização do front-end
 
 Sem Vuex e sem Vue Router: uma tela, e o estado cabe no componente raiz.
